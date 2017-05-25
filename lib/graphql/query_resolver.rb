@@ -22,12 +22,10 @@ module GraphQL
       to_load
     end
 
-    def self.map_dependencies(class_name, ast_node)
-      dependencies = {}
+    def self.map_dependencies(class_name, ast_node, dependencies={})
       ast_node.selections.each do |selection|
         name = selection.name
-
-        if class_name.reflections.with_indifferent_access[selection.name].present?
+        if class_name.reflections.with_indifferent_access[name].present?
           begin
             current_class_name = selection.name.singularize.classify.constantize
             dependencies[name] = map_dependencies(current_class_name, selection)
@@ -35,9 +33,11 @@ module GraphQL
             selection_name = class_name.reflections.with_indifferent_access[selection.name].options[:class_name]
             current_class_name = selection_name.singularize.classify.constantize
             dependencies[selection.name.to_sym] = map_dependencies(current_class_name, selection)
-
             next
           end
+
+        elsif selection.selections.present?
+            map_dependencies(class_name, selection, dependencies)
         end
       end
 
